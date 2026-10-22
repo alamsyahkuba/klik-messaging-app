@@ -1,0 +1,230 @@
+name: Android CI/CD Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ''
+      ANDROID_KEYSTORE_PASSWORD: ''
+      ANDROID_KEY_ALIAS: ''
+      ANDROID_KEY_PASSWORD: ''
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'release' && github.event.action == 'published')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      secrets: read
+      id-token: none
+
+    defaults:
+      run:
+        working-directory: .
+
+    timeout-minutes: 90
+
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Cancel any in-progress workflow runs for this PR
+        uses: styfle/cancel-workflow-action@1.1.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cancel printf
+        run: echo "no-op"
+
+      - name: Normalize version tag
+        id: normalize_version
+        run: |
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name }}"
+          # Ensure version starts with 'v' for git tag reference
+          if [[ "$VERSION" != v* ]]; then
+            VERSION="v$VERSION"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Normalized version: $VERSION"
+
+      - name: Checkout exact source revision for release
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.normalize_version.outputs.version }}
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Accept Android licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+
+      - name: Set up Android SDK
+        uses: react-native-community/setup-android@0.3.3
+        with:
+          api-level: 34
+          ndk-level: 25
+
+      - name: Cache Gradle wrapper
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Decode keystore from Base64 secret
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "Decoding keystore..."
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/klik-release.jks
+          chmod 600 /tmp/klik-release.jks
+          echo "Keystore decoded to /tmp/klik-release.jks"
+          echo "ANDROID_KEYSTORE_PATH=/tmp/klik-release.jks" >> $GITHUB_ENV
+
+      - name: Verify keystore file exists and is non-empty
+        run: |
+          if [ ! -s /tmp/klik-release.jks ]; then
+            echo "::error ::Keystore file is empty or missing after decoding"
+            exit 1
+          fi
+          ls -la /tmp/klik-release.jks
+
+      - name: Configure Gradle signing with environment variables
+        run: |
+          export ANDROID_KEYSTORE_PATH=/tmp/klik-release.jks
+          export ANDROID_KEYSTORE_PASSWORD="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+          export ANDROID_KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}"
+          export ANDROID_KEY_PASSWORD="${{ secrets.ANDROID_KEY_PASSWORD }}
+          echo "ANDROID_KEYSTORE_PATH=$ANDROID_KEYSTORE_PATH"
+          echo "ANDROID_KEYSTORE_PASSWORD set (length: ${#ANDROID_KEYSTORE_PASSWORD})"
+          echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+          echo "ANDROID_KEY_PASSWORD set (length: ${#ANDROID_KEY_PASSWORD})"
+
+      - name: Build signed release APK
+        env:
+          ANDROID_KEYSTORE_PATH: /tmp/klik-release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Build signed Android App Bundle (AAB)
+        env:
+          ANDROID_KEYSTORE_PATH: /tmp/klik-release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+
+      - name: Verify APK and AAB exist and are non-empty
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          if [ ! -f "$APK" ] || [ ! -s "$APK" ]; then
+            echo "::error ::Release APK not found or empty at $APK"
+            exit 1
+          fi
+          if [ ! -f "$AAB" ] || [ ! -s "$AAB" ]; then
+            echo "::error ::Release AAB not found or empty at $AAB"
+            exit 1
+          fi
+          echo "Release APK: $APK ($(stat -c%s "$APK") bytes)"
+          echo "Release AAB: $AAB ($(stat -c%s "$AAB") bytes)"
+
+      - name: Verify signing certificates
+        run: |
+          apksigner verify --print-certs "$APK"
+          apksigner verify --print-certs "$AAB"
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd android/app/build/outputs
+          sha256sum app-release.apk > app-release.apk.sha256
+          sha256sum app-release.aab > app-release.aab.sha256
+          echo "Checksums generated"
+
+      - name: Create or update GitHub Release and upload assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.normalize_version.outputs.version }}
+        run: |
+          TAG_NAME="${RELEASE_VERSION#v}"
+          OWNER=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f1)
+          REPO=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
+
+          # Check if release already exists for this tag
+          EXISTING_RELEASE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$TAG_NAME" || echo "")
+
+          if [ -z "$EXISTING_RELEASE" ]; then
+            # Create new release (workflow_dispatch case)
+            echo "Creating new release for tag $TAG_NAME"
+            CREATE_RESPONSE=$(curl -s -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/$GITHUB_REPOSITORY/releases \
+              -d "{\"tag_name\":\"$TAG_NAME\",\"name\":\"$TAG_NAME\",\"body\":\"KLIK release $TAG_NAME\",\"draft\":false,\"prerelease\":false}")
+            RELEASE_ID=$(echo "$CREATE_RESPONSE" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('id',''))" 2>/dev/null || echo "")
+          else
+            # Update existing release (release.published case)
+            echo "Updating existing release for tag $TAG_NAME"
+            RELEASE_ID=$(echo "$EXISTING_RELEASE" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('id',''))" 2>/dev/null || echo "")
+          fi
+
+          if [ -z "$RELEASE_ID" ]; then
+            echo "::error ::Failed to create or find release"
+            exit 1
+          fi
+
+          echo "Release ID: $RELEASE_ID"
+
+          # Upload APK asset
+          curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -F "file=@app-release.apk" \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=app-release.apk || true
+
+          # Upload AAB asset
+          curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -F "file=@app-release.aab" \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=app-release.aab || true
+
+          # Upload SHA-256 checksum file
+          curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -F "file=@app-release.apk.sha256" \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=app-release.apk.sha256 || true
+
+      - name: Clean up temporary keystore files
+        run: |
+          rm -f /tmp/klik-release.jks
+
+      - name: Release metadata
+        run: echo "Signed release artifacts built and uploaded successfully"

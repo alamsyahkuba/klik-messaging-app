@@ -1,0 +1,102 @@
+name: Android CI/CD Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    defaults:
+      run:
+        working-directory: .
+
+    timeout-minutes: 60
+
+    steps:
+      - name: Cancel any in-progress workflow runs for this PR
+        uses: styfle/cancel-workflow-action@1.1.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cancel printf
+        run: echo "no-op"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Accept Android licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+
+      - name: Set up Android SDK
+        uses: react-native-community/setup-android@0.3.3
+        with:
+          api-level: 34
+          ndk-level: 25
+
+      - name: Cache Gradle wrapper
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run project validation (check)
+        run: npm run check
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Assemble Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Run unit tests
+        run: ./gradlew test
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            android/build/test-results
+            android/app/build/test-results
+          retention-days: 30
+
+      - name: Publish debug APK metadata
+        run: echo "Debug APK built successfully at android/app/build/outputs/apk/debug/app-debug.apk"
