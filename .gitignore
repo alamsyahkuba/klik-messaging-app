@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Environment (jangan pernah commit secret)
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# Hasil generate (npm run sync:env)
+vendor/
+
+# Capacitor / Android / iOS
+android/app/src/main/assets/public/
+android/capacitor.settings.json
+android/app/capacitor.config.json
+ios/App/App/public/
+ios/App/capacitor.config.json
+
+# Editor & OS
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Supabase lokal
+supabase/.temp/
+supabase/.branches/
+
+# Secret Firebase (service account - jangan pernah commit)
+*firebase-adminsdk*.json
+
+# Windows Zone.Identifier should never be committed
+*:Zone.Identifier
+
+# Gradle wrapper JAR (binary, not source)
+android/gradle/wrapper/gradle-wrapper.jar
+
+# Keystore files - never commit
+*.jks
+*.keystore
+
+# Proguard files with possible sensitive config
+proguard-rules.pro
+
+# Firebase/google-services config - jangan commit ke repo
+android/app/google-services.json

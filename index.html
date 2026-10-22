@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#FFD93D">
+  <meta name="description" content="KLIK - aplikasi chat tanpa email dan nomor telepon.">
+  <title>KLIK &mdash; Chat</title>
+  <link rel="icon" type="image/svg+xml" href="src/assets/logo.svg">
+  <link rel="stylesheet" href="src/styles/tokens.css">
+  <link rel="stylesheet" href="src/styles/reset.css">
+  <link rel="stylesheet" href="src/styles/global.css">
+  <link rel="stylesheet" href="src/styles/components.css">
+  <link rel="stylesheet" href="src/styles/responsive.css">
+</head>
+<body>
+  <div id="app" class="app-root"></div>
+  <div id="toast-host" class="toast-host" role="status" aria-live="polite"></div>
+  <div id="modal-root"></div>
+  <!-- Library runtime (UMD, tanpa bundler). Dihasilkan npm run sync:env -->
+  <script src="vendor/supabase.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

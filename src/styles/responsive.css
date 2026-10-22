@@ -1,0 +1,227 @@
+/* =============================================================
+   Responsivitas
+   Desktop : sidebar + daftar + panel chat + panel detail opsional
+   Mobile  : halaman terpisah, bottom nav, safe area, target sentuh
+   Breakpoint: 640 (small mobile), 900 (tablet/desktop), 1200 (luas)
+   ============================================================= */
+
+/* --- Mobile first: semuakan chrome desktop --- */
+@media (max-width: 899px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .app-nav {
+    display: none;
+  }
+
+  .app-content {
+    padding: var(--space-3);
+    padding-bottom: var(--space-3);
+    /* ruang untuk tab bar + safe area */
+    padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-3));
+  }
+
+  .app-content.is-fullscreen {
+    padding: 0;
+    padding-bottom: 0;
+  }
+
+  /* Sembunyikan tab bar di halaman fullscreen (chat) - composer menempel
+     di bawah, tab bar hanya menutupi input dan memicu tap tak sengaja. */
+  .app-shell:has(.app-content.is-fullscreen) .tabbar {
+    display: none;
+  }
+
+  /* Bottom navigation */
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    z-index: var(--z-nav);
+    background: var(--color-surface-alt);
+    border-top: var(--border-width) solid var(--color-border);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .tabbar__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--tabbar-height);
+    font-size: var(--size-xs);
+    font-weight: var(--weight-bold);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    position: relative;
+  }
+
+  .tabbar__item.is-active {
+    color: var(--color-on-primary);
+    background: var(--color-primary);
+  }
+
+  .tabbar__item.is-active .tabbar__label {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .tabbar__badge {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    margin-left: 6px;
+  }
+
+  /* Chat list & chat room = halaman terpisah */
+  .chat-page {
+    grid-template-columns: 1fr;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .chat-page__list {
+    display: none;
+  }
+
+  /* Header chat: tombol kembali tampil di mobile */
+  .chat-header__back {
+    display: inline-flex;
+  }
+
+  /* Drawer info room jadi sheet penuh */
+  .drawer {
+    width: 100%;
+    border-left: none;
+    border-top: var(--border-width-lg) solid var(--color-border);
+    border-top-left-radius: var(--radius-card);
+    border-top-right-radius: var(--radius-card);
+  }
+
+  /* Daftar di halaman home menempati penuh */
+  .home-page {
+    grid-template-columns: 1fr;
+  }
+
+  .home-page__detail {
+    display: none;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding-bottom: var(--space-3);
+    min-height: auto;
+  }
+
+  .topbar .search {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .msg-row {
+    max-width: 86%;
+  }
+
+  .modal {
+    max-height: 90dvh;
+  }
+
+  .toast-host {
+    bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-3));
+    width: calc(100vw - var(--space-5));
+  }
+
+  .app-content.is-fullscreen ~ .toast-host,
+  .toast-host.is-high {
+    bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+  }
+}
+
+/* Sangat sempit (320-360px) */
+@media (max-width: 400px) {
+  .app-content {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+  }
+
+  .auth-card {
+    padding: var(--space-4);
+    box-shadow: var(--shadow-hard);
+  }
+
+  .text-display {
+    font-size: var(--size-2xl);
+  }
+
+  .btn {
+    padding: 10px var(--space-3);
+  }
+
+  .label-code {
+    font-size: var(--size-lg);
+    letter-spacing: 0.05em;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+/* --- Desktop: sidebar navigasi aktif --- */
+@media (min-width: 900px) {
+  .home-page {
+    display: grid;
+    grid-template-columns: var(--list-width) 1fr;
+    gap: var(--space-4);
+    flex: 1;
+    min-height: 0;
+  }
+
+  .chat-page--with-list {
+    grid-template-columns: var(--list-width) 1fr;
+  }
+}
+
+/* Layar luas: daftar percakapan tetap tampil di halaman chat */
+@media (min-width: 1200px) {
+  .app-content {
+    padding: var(--space-5);
+  }
+}
+
+/* Mode cetak / lanskap ekstrem: jangan tumpang tindih */
+@media (max-height: 480px) and (orientation: landscape) {
+  .auth-page {
+    align-items: flex-start;
+  }
+
+  .auth-card {
+    margin: var(--space-3) 0;
+  }
+
+  .state-view {
+    min-height: 140px;
+    padding: var(--space-4);
+  }
+}
+
+/* Sentuh kasar: besarkan target */
+@media (pointer: coarse) {
+  .btn--icon {
+    min-width: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .tabbar__item {
+    min-height: 56px;
+  }
+}

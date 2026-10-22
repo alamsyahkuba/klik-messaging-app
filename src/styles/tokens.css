@@ -1,0 +1,151 @@
+/* =============================================================
+   KLIK Design Tokens - Neobrutalism
+   Semua nilai visual yang boleh diubah ada di file ini.
+   ============================================================= */
+
+:root {
+  /* --- Warna --- */
+  --color-background: #f7f3e8;   /* cream / off-white */
+  --color-surface: #ffffff;      /* kartu, panel, bubble orang lain */
+  --color-surface-alt: #efe9da;  /* sidebar, area sekunder */
+  --color-primary: #ffd93d;      /* kuning - aksen utama */
+  --color-secondary: #9be15d;    /* lime - aksen positif */
+  --color-accent: #4d96ff;       /* biru - aksen informasi */
+  --color-accent-2: #ff6b6b;     /* coral - aksen bahaya */
+  --color-text: #161616;
+  --color-text-muted: #5f5a52;
+  --color-text-inverse: #ffffff;
+  --color-border: #161616;
+  --color-danger: #c92a2a;
+  --color-success: #2f9e44;
+  --color-warning: #f08c00;
+
+  /* Teks di atas latar berwarna cerah (kuning/lime/coral/biru).
+     Selalu gelap supaya kontras AA di tema terang MAUPUN gelap. */
+  --color-on-primary: #161616;
+
+  /* Garis pola latar belakang (lembut, tidak menyilaukan) */
+  --color-grid: rgba(22, 22, 22, 0.07);
+
+  /* Persen pencampur notice bawaan (kuning) di atas surface */
+  --notice-primary-mix: 55%;
+
+  /* Status pesan di atas bubble kuning (milik sendiri) */
+  --color-status-pending-on-bright: #6b675c;
+  --color-status-sent-on-bright: #2b62cf;
+  --color-status-read-on-bright: #1f7a35;
+
+  /* Bubble milik sendiri */
+  --color-bubble-mine: #ffd93d;
+  --color-bubble-theirs: #ffffff;
+
+  /* Status pesan */
+  --color-status-pending: #8a8578;
+  --color-status-sent: #4d96ff;
+  --color-status-read: #2f9e44;
+
+  /* Avatar (dipilih deterministik dari nama) */
+  --avatar-1: #ffd93d;
+  --avatar-2: #9be15d;
+  --avatar-3: #4d96ff;
+  --avatar-4: #ff6b6b;
+  --avatar-5: #c3a6ff;
+
+  /* --- Border & shadow (keras, tanpa blur) --- */
+  --border-width: 2px;
+  --border-width-lg: 3px;
+  --shadow-hard: 4px 4px 0 var(--color-border);
+  --shadow-hard-sm: 2px 2px 0 var(--color-border);
+  --shadow-hard-lg: 7px 7px 0 var(--color-border);
+  --shadow-press: 0 0 0 var(--color-border);
+
+  /* --- Radius --- */
+  --radius-card: 12px;
+  --radius-btn: 10px;
+  --radius-input: 10px;
+  --radius-bubble: 14px;
+  --radius-pill: 999px;
+
+  /* --- Spacing (basis 8px) --- */
+  --spacing-unit: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* --- Tipografi --- */
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", ui-monospace, "Cascadia Mono", Consolas,
+    "Liberation Mono", monospace;
+  --weight-regular: 500;
+  --weight-semibold: 700;
+  --weight-bold: 800;
+  --size-xs: 0.75rem;
+  --size-sm: 0.875rem;
+  --size-md: 1rem;
+  --size-lg: 1.125rem;
+  --size-xl: 1.5rem;
+  --size-2xl: 2rem;
+  --size-3xl: 2.75rem;
+  --line-tight: 1.2;
+  --line-normal: 1.5;
+
+  /* --- Layout --- */
+  --nav-width: 248px;
+  --list-width: 340px;
+  --detail-width: 320px;
+  --topbar-height: 64px;
+  --tabbar-height: 64px;
+  --hit-min: 44px; /* target sentuh minimum */
+
+  /* --- Animasi (singkat & fungsional) --- */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease: cubic-bezier(0.2, 0.9, 0.3, 1);
+
+  /* --- Z-index --- */
+  --z-nav: 30;
+  --z-drawer: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* Tinggi aktif (di-update oleh JS saat keyboard terbuka, fallback dvh) */
+  --app-height: 100dvh;
+}
+
+/* --- Tema gelap (opsional, diatur dari Profil -> Tema) --- */
+:root[data-theme="dark"] {
+  --color-background: #1c1a16;
+  --color-surface: #26231e;
+  --color-surface-alt: #2f2b24;
+  --color-text: #f5f1e6;
+  --color-text-muted: #b0a99a;
+  --color-border: #f5f1e6;
+  --color-bubble-theirs: #2f2b24;
+  --color-bubble-mine: #ffd93d;
+  --color-accent-2: #ff8787;
+  --color-grid: rgba(245, 241, 230, 0.05);
+  --notice-primary-mix: 30%;
+  --shadow-hard: 4px 4px 0 var(--color-border);
+  --shadow-hard-sm: 2px 2px 0 var(--color-border);
+  --shadow-hard-lg: 7px 7px 0 var(--color-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --color-background: #1c1a16;
+    --color-surface: #26231e;
+    --color-surface-alt: #2f2b24;
+    --color-text: #f5f1e6;
+    --color-text-muted: #b0a99a;
+    --color-border: #f5f1e6;
+    --color-bubble-theirs: #2f2b24;
+    --color-accent-2: #ff8787;
+    --color-grid: rgba(245, 241, 230, 0.05);
+    --notice-primary-mix: 30%;
+  }
+}
